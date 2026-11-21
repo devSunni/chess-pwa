@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>체스</title>
+<meta name="description" content="컴퓨터와 두는 체스 — 배우기 모드, 힌트, 시계, 기보 보기">
+<meta name="theme-color" content="#27302a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="체스">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+:root{--bg1:#fbf8f0;--bg2:#e7dfcc;--ink:#2a241b;--sub:#7a705e;--line:rgba(42,36,27,.2);--panel:rgba(255,255,255,.6);--gold:#8f6c1f;--frame:#4a3624;--lt:#ebecd0;--dk:#779556;--bs:min(92vw,520px);color-scheme:light;background:radial-gradient(120% 70% at 50% 0%,var(--bg1),var(--bg2)) fixed var(--bg2);min-height:100%;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg1:#27302a;--bg2:#0e1210;--ink:#ece6d6;--sub:#a5a090;--line:rgba(236,230,214,.18);--panel:rgba(255,255,255,.05);--gold:#d4b26a;--frame:#3a2b1e;color-scheme:dark}}
+:root[data-theme="dark"]{--bg1:#27302a;--bg2:#0e1210;--ink:#ece6d6;--sub:#a5a090;--line:rgba(236,230,214,.18);--panel:rgba(255,255,255,.05);--gold:#d4b26a;--frame:#3a2b1e;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{color:var(--ink);font-family:"Noto Serif KR","Nanum Myeongjo",Georgia,serif;display:flex;justify-content:center;padding:16px 12px 28px;min-height:100vh}
+button,select{font:inherit;font-size:.85rem;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;transition:border-color .15s,color .15s,background .15s}
+button:hover,select:hover{border-color:var(--gold)}
+button:hover{color:var(--gold)}
+button:focus-visible,select:focus-visible,.sq:focus-visible{outline:2px solid #3b78c4;outline-offset:1px}
+#mt{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;z-index:5;font-size:.8rem}
+#app{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+#pn{display:contents}
+h1{order:-2;margin:6px 0 0;font-weight:500;font-size:1.7rem;letter-spacing:.2em;text-indent:.2em;text-align:center}
+h1 span{display:block;font:600 .6rem/1 system-ui,sans-serif;letter-spacing:.55em;text-indent:.55em;color:var(--gold);margin-bottom:6px}
+#st{order:-1;display:inline-flex;align-items:center;gap:10px;padding:7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.92rem}
+#st::before{content:"";width:12px;height:12px;border-radius:50%;background:#f6f1e4;border:1px solid #8a7f6a;flex:none}
+#st[data-t="b"]::before{background:#1a1713}
+#st[data-t="x"]::before{background:var(--gold);border-color:var(--gold)}
+#bc{width:var(--bs);position:relative}
+.pbr{display:flex;align-items:center;gap:8px;height:38px;font-size:.88rem}
+.pbr .dot{width:10px;height:10px;border-radius:50%;border:1px solid var(--sub);flex:none}
+.pbr.on .dot{background:var(--gold);border-color:var(--gold)}
+.pbr em{font-style:normal;color:var(--sub);font-size:.8rem}
+.pbr .sx{margin-left:auto;color:var(--gold);font-size:.8rem}
+.ck{font:600 1rem/1 ui-monospace,Menlo,monospace;padding:5px 10px;border-radius:8px;background:var(--panel);border:1px solid var(--line);min-width:64px;text-align:center}
+.pbr.on .ck{background:var(--gold);color:#1b1610;border-color:var(--gold)}
+#gh{position:fixed;z-index:30;pointer-events:none;transform:translate(-50%,-60%);font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",serif;font-size:calc(var(--bs)/8*.95);line-height:1}
+.cp{display:flex;font-size:1rem;line-height:1}
+.g.w{color:#fffdf5;text-shadow:-1px -1px 0 #222,1px -1px 0 #222,-1px 1px 0 #222,1px 1px 0 #222}
+.g.b{color:#1a1a1a}
+#bd{width:var(--bs);height:var(--bs);display:grid;grid-template:repeat(8,minmax(0,1fr))/repeat(8,minmax(0,1fr));border:4px solid #262421;border-radius:8px;overflow:hidden;box-shadow:0 18px 40px -16px rgba(0,0,0,.6);touch-action:none}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;font-family:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols",serif;font-size:calc(var(--bs)/8*.78);line-height:1;cursor:pointer;user-select:none;-webkit-user-select:none}
+.L{background-color:var(--lt)}.D{background-color:var(--dk)}
+.sq.lm::before,.sq.sel::before,.sq.hint::before{content:"";position:absolute;inset:0}
+.sq.lm::before{background:rgba(245,246,100,.5)}
+.sq.hint::before{background:rgba(70,180,90,.55)}
+.sq.sel::before{background:rgba(255,236,170,.5);box-shadow:inset 0 0 0 3px var(--gold)}
+.sq.chk{background-color:#cf5a4b}
+.sq.mv::after{content:"";position:absolute;z-index:2;pointer-events:none;width:30%;height:30%;border-radius:50%;background:rgba(30,20,10,.3)}
+.sq.mv.cp::after{width:88%;height:88%;background:none;border:4px solid rgba(30,20,10,.35)}
+.p{position:relative;z-index:1;filter:drop-shadow(0 2px 1.5px rgba(0,0,0,.45));transition:transform .12s}
+.p.w{background:linear-gradient(#fffef9,#e6dcc3);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:.6px #2a2118}
+.p.b{background:linear-gradient(#55514a,#14120f);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:.6px rgba(255,255,255,.2)}
+@media (hover:hover){.sq:hover .p{transform:translateY(-2px)}}
+:root{--sz:calc((var(--bs) - 8px)/8)}
+@keyframes slide{from{transform:translate(calc(var(--dx)*var(--sz)),calc(var(--dy)*var(--sz)))}to{transform:none}}
+.p.sl{animation:slide .22s cubic-bezier(.2,.8,.3,1);z-index:5}
+.tr{position:absolute;z-index:3;pointer-events:none;transform-origin:0 50%;background:linear-gradient(to right,transparent,rgba(255,255,255,.7));filter:blur(5px);border-radius:50%;animation:trl .7s ease-out forwards}
+@keyframes trl{from{opacity:.95}to{opacity:0}}
+.bg{position:absolute;z-index:4;top:2px;right:2px;width:34%;height:34%;min-width:16px;min-height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:700 .7rem/1 system-ui,sans-serif;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.45);animation:pop .3s .12s cubic-bezier(.3,1.6,.5,1) both}
+@keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+.bg.q0{background:#d93a3a}.bg.q1{background:#e8793a}.bg.q2{background:#e9b52c}.bg.q3{background:#5a8fd4}.bg.q4{background:#26b5a8}.bg.mt{background:#b3261e}.bg.wn{background:#4f9a3a}
+.pt{position:absolute;z-index:8;pointer-events:none;border-radius:2px;box-shadow:0 0 0 1px rgba(0,0,0,.3);animation:pt 1.2s cubic-bezier(.1,.7,.3,1) forwards}
+@keyframes pt{from{transform:translate(-50%,-50%);opacity:1}to{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty) + 40px)) rotate(var(--rot));opacity:0}}
+.rg{position:absolute;z-index:8;pointer-events:none;width:16px;height:16px;border:3px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 12px rgba(255,255,255,.7);animation:rg .8s ease-out forwards}
+@keyframes rg{to{width:calc(var(--bs)*.55);height:calc(var(--bs)*.55);opacity:0;border-width:1px}}
+@media (prefers-reduced-motion:reduce){.p.sl,.tr,.pt,.rg{animation:none;display:none}}
+.co{position:absolute;font:600 .6rem/1 system-ui,sans-serif;opacity:.8;z-index:2}
+.co.r{top:3px;left:3px}.co.f{bottom:3px;right:3px}
+.L .co{color:#779556}.D .co{color:#ebecd0}
+#tip{order:1;display:none;border:1px solid var(--line);background:var(--panel);border-radius:12px;box-shadow:inset 3px 0 0 var(--gold);padding:9px 14px;font-size:.9rem;line-height:1.5}
+#tip.on{display:block}
+#mv{order:2;overflow:auto;max-height:130px;border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:6px;font-size:.88rem}
+.r{display:grid;grid-template-columns:2.2em 1fr 1fr;align-items:center}
+.r .n{color:var(--sub);padding-left:6px}
+.mb{border:none;background:none;border-radius:6px;padding:4px 8px;text-align:left;font-size:.88rem}
+.mb.a{background:var(--gold);color:#1b1610}
+#nav{order:3;display:flex;gap:8px}
+#nav button{flex:1}
+#bar{order:4;display:flex;flex-wrap:wrap;gap:8px}
+#bar>*{flex:1 1 40%}
+#ln[aria-pressed="true"],#ln[aria-pressed="true"]:hover{background:var(--gold);border-color:var(--gold);color:#1b1610}
+#mv,#bar,#nav,#tip{width:var(--bs)}
+.ov{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5)}
+.ov.on{display:flex}
+.card{background:var(--bg1);color:var(--ink);border:1px solid var(--gold);border-radius:16px;padding:22px;text-align:center;min-width:240px}
+.card h2{margin:0 0 16px;font-size:1.2rem;font-weight:600}
+.card p{margin:0 0 12px}
+#pc{display:flex;gap:10px;justify-content:center}
+#pc button{font-size:2.2rem;width:64px;height:64px;border-radius:12px;padding:0;line-height:1;color:#fffdf5}
+#pc.b button{color:#1a1a1a}
+.hm h1,.hm #nav,.hm #mv,.hm #bar{display:none}
+.hm #tip.on{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);width:min(92vw,520px);z-index:6;background:var(--bg2)}
+@media (min-width:800px){
+:root{--bs:min(calc(100vw - 420px),calc(100vh - 110px),820px)}
+body{align-items:center}
+#app{flex-direction:row;align-items:flex-start;justify-content:center;gap:28px}
+#pn{display:flex;flex-direction:column;gap:10px;width:340px;height:calc(var(--bs) + 76px)}
+#pn>*{width:100%}
+h1{text-align:left;text-indent:0;margin:0}
+h1 span{text-indent:0}
+#st{align-self:flex-start}
+#mv{flex:1;max-height:none;min-height:0}
+.hm #pn{display:contents}
+.hm #app{flex-direction:column;align-items:center;gap:8px}
+.hm #st{order:-1}
+}
+:root.hm{--bs:min(calc(100vw - 32px),calc(100vh - 175px),900px)}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<g id="P"><circle cx="22.5" cy="13" r="5.5"/><path d="M15.5 34c0-7 2.5-10.5 7-12.5 4.5 2 7 5.5 7 12.5z"/><rect x="11.5" y="34" width="22" height="5" rx="2.5"/></g>
+<g id="R"><path d="M12 39.5v-4h21v4z"/><path d="M15 35.5l1.5-14h12l1.5 14z"/><path d="M13 21.5v-9.5h4.5v3h3v-3h4v3h3v-3H32v9.5z"/><path d="M16 27h13" fill="none" stroke="currentColor"/></g>
+<g id="B"><circle cx="22.5" cy="8" r="2.8"/><path d="M22.5 11c5.5 3 8.500 8 6.500 13.500-1 2.500-2.500 4-2.500 6.500h-8c0-2.500-1.500-4-2.500-6.500C14 19 17 14 22.500 11z"/><path d="M11.5 39.5v-3.500c3.500-1.500 7-3.500 11-3.500s7.500 2 11 3.500v3.500z"/><path d="M22.500 15.500v6M19.500 18.500h6" fill="none" stroke="currentColor"/></g>
+<g id="N"><path d="M12 39.500c.5-9 3-14.500 8.500-18.500l-4-2.500.5-4.500 6.500-8.500 2.500 2c7 1.500 11 8.500 11 19.500v12.500z"/><circle cx="23.500" cy="15.500" r="1.300" fill="currentColor" stroke="none"/><path d="M17 20l4-1.500" fill="none" stroke="currentColor"/></g>
+<g id="Q"><path d="M12.500 36L9 18l7.500 7.500L16.500 12l4 13L22.500 10l2 15 4-13 .5 13.500L36 18l-3.500 18z"/><rect x="11" y="35.500" width="23" height="4" rx="2"/><circle cx="9" cy="16.500" r="2.200"/><circle cx="16.500" cy="10.500" r="2.200"/><circle cx="22.500" cy="8.500" r="2.200"/><circle cx="28.500" cy="10.500" r="2.200"/><circle cx="36" cy="16.500" r="2.200"/></g>
+<g id="K"><path d="M22.500 14c-7.500 0-11.500 4.500-10.500 11 .5 3 2 5.500 3 8.500h15c1-3 2.500-5.500 3-8.500 1-6.500-3-11-10.500-11z"/><rect x="11" y="33.500" width="23" height="5.500" rx="2.500"/><path d="M22.500 4.500v9.500M18 8.500h9" fill="none" stroke-width="2.800"/></g>
+</defs></svg>
+<button id="mt" aria-expanded="true">메뉴 숨기기</button>
+<main id="app">
+<section id="bc"><div class="pbr" id="pt"></div><div id="bd"></div><div class="pbr" id="pu"></div></section>
+<aside id="pn">
+<h1><span>CHESS</span>체스</h1>
+<div id="st"></div>
+<div id="tip"></div>
+<div id="mv"></div>
+<div id="nav"><button data-k="f" aria-label="처음">⏮</button><button data-k="p" aria-label="이전">◀</button><button data-k="n" aria-label="다음">▶</button><button data-k="l" aria-label="마지막">⏭</button></div>
+<div id="bar">
+<select id="mode" aria-label="상대"><option value="w">컴퓨터와 (내가 백)</option><option value="b">컴퓨터와 (내가 흑)</option><option value="2">둘이서</option></select>
+<select id="lvl" aria-label="난이도"><option value="0">입문</option><option value="1">쉬움</option><option value="2" selected>보통</option><option value="3">어려움</option></select>
+<select id="tcs" aria-label="시간"><option value="0:0">시간 무제한</option><option value="60:0">1분</option><option value="180:2">3분+2초</option><option value="300:0">5분</option><option value="600:0">10분</option></select>
+<button id="nw">새 게임</button><button id="un">무르기</button><button id="fl">뒤집기</button><button id="rs">기권</button><button id="ht">힌트</button><button id="ln" aria-pressed="false">배우기 꺼짐</button><button id="sd" aria-pressed="true">소리 켜짐</button>
+</div>
+</aside>
+</main>
+<div class="ov" id="pr"><div class="card"><p>프로모션: 무엇으로 바꿀까요?</p><div id="pc"></div></div></div>
+<div class="ov" id="ov"><div class="card"><h2 id="ovt"></h2><button id="ovn">새 게임</button> <button id="ovc">닫기</button></div></div>
+<script>
+const EV={P:100,N:320,B:330,R:500,Q:900,K:0},MV={P:1,N:3,B:3,R:5,Q:9,K:0},SC={P:8,N:2,B:2,R:2,Q:1};
+const U={K:"♚",Q:"♛",R:"♜",B:"♝",N:"♞",P:"♟\uFE0E"},NM={P:"폰",N:"나이트",B:"비숍",R:"룩",Q:"퀸",K:"킹"};
+const TIP={P:"폰: 앞으로 한 칸 (처음엔 두 칸도 가능). 상대 말은 대각선 앞으로 한 칸에서 잡아요. 끝까지 가면 변신!",N:"나이트: L자로 움직여요 (두 칸 + 한 칸). 다른 말을 뛰어넘을 수 있어요.",B:"비숍: 대각선으로 몇 칸이든. 처음 색깔 칸에서만 움직여요.",R:"룩: 가로·세로로 몇 칸이든. 킹과 함께 캐슬링도 해요.",Q:"퀸: 가로·세로·대각선 어디로든 몇 칸이든. 가장 강한 말!",K:"킹: 어느 방향이든 한 칸. 상대가 노리는 칸에는 못 가요."};
+const D8=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]],KN=[[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+const on=(r,c)=>r>=0&&r<8&&c>=0&&c<8,$=i=>document.getElementById(i);
+let H,vi,sel,dests,flip,over,busy,res,learn=false,hint=null,warn=null,tm,snd=true,AC=null,pend=null,T={w:0,b:0},INC=0,clk=false,lastT=0,dg=null,sw=0,gh=null,fx=null,hold=0,ns=false;
+const cur=()=>H[H.length-1].s,idx=()=>vi==null?H.length-1:vi;
+function init(){const b=Array.from({length:8},()=>Array(8).fill(null)),k="RNBQKBNR";
+for(let c=0;c<8;c++){b[0][c]="b"+k[c];b[1][c]="bP";b[6][c]="wP";b[7][c]="w"+k[c];}
+return{b,t:"w",cr:{wK:1,wQ:1,bK:1,bQ:1},ep:null};}
+function att(b,r,c,by){const pd=by==="w"?1:-1;
+for(const dc of[-1,1]){const x=r+pd,y=c+dc;if(on(x,y)&&b[x][y]===by+"P")return true;}
+for(const[dr,dc]of KN){const x=r+dr,y=c+dc;if(on(x,y)&&b[x][y]===by+"N")return true;}
+for(let i=0;i<8;i++){const[dr,dc]=D8[i];let x=r+dr,y=c+dc;
+if(on(x,y)&&b[x][y]===by+"K")return true;
+while(on(x,y)){const p=b[x][y];if(p){if(p[0]===by){const t=p[1];if(t==="Q"||(t==="R"&&i<4)||(t==="B"&&i>=4))return true;}break;}x+=dr;y+=dc;}}
+return false;}
+function gen(s,r,c){const b=s.b,p=b[r][c],col=p[0],ty=p[1],o=col==="w"?"b":"w",out=[];
+const add=(x,y,f)=>out.push({r,c,x,y,f});
+if(ty==="P"){const d=col==="w"?-1:1,st=col==="w"?6:1,pr=col==="w"?0:7;
+if(on(r+d,c)&&!b[r+d][c]){add(r+d,c,r+d===pr?"p":"");if(r===st&&!b[r+2*d][c])add(r+2*d,c,"d");}
+for(const dc of[-1,1]){const x=r+d,y=c+dc;if(!on(x,y))continue;
+if(b[x][y]&&b[x][y][0]===o)add(x,y,x===pr?"p":"");else if(s.ep&&s.ep[0]===x&&s.ep[1]===y)add(x,y,"e");}
+}else if(ty==="N"||ty==="K"){
+for(const[dr,dc]of ty==="N"?KN:D8){const x=r+dr,y=c+dc;if(on(x,y)&&(!b[x][y]||b[x][y][0]===o))add(x,y,"");}
+if(ty==="K"){const row=col==="w"?7:0;
+if(r===row&&c===4&&!att(b,row,4,o)){
+if(s.cr[col+"K"]&&!b[row][5]&&!b[row][6]&&b[row][7]===col+"R"&&!att(b,row,5,o)&&!att(b,row,6,o))add(row,6,"k");
+if(s.cr[col+"Q"]&&!b[row][3]&&!b[row][2]&&!b[row][1]&&b[row][0]===col+"R"&&!att(b,row,3,o)&&!att(b,row,2,o))add(row,2,"q");}}
+}else{const ds=ty==="B"?D8.slice(4):ty==="R"?D8.slice(0,4):D8;
+for(const[dr,dc]of ds){let x=r+dr,y=c+dc;while(on(x,y)){if(!b[x][y])add(x,y,"");else{if(b[x][y][0]===o)add(x,y,"");break;}x+=dr;y+=dc;}}}
+return out;}
+function ap(s,m){const b=s.b.map(r=>r.slice()),p=b[m.r][m.c],col=p[0],cr={...s.cr};
+b[m.r][m.c]=null;b[m.x][m.y]=m.f==="p"?col+(m.pr||"Q"):p;
+if(m.f==="e")b[m.r][m.y]=null;
+if(m.f==="k"){b[m.x][5]=b[m.x][7];b[m.x][7]=null;}
+if(m.f==="q"){b[m.x][3]=b[m.x][0];b[m.x][0]=null;}
+if(p[1]==="K"){cr[col+"K"]=0;cr[col+"Q"]=0;}
+for(const[q,k]of[[[7,0],"wQ"],[[7,7],"wK"],[[0,0],"bQ"],[[0,7],"bK"]])
+if((m.r===q[0]&&m.c===q[1])||(m.x===q[0]&&m.y===q[1]))cr[k]=0;
+return{b,t:col==="w"?"b":"w",cr,ep:m.f==="d"?[(m.r+m.x)/2,m.c]:null};}
+function kp(b,col){for(let r=0;r<8;r++)for(let c=0;c<8;c++)if(b[r][c]===col+"K")return[r,c];}
+function legal(s){const out=[];
+for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=s.b[r][c];if(!p||p[0]!==s.t)continue;
+for(const m of gen(s,r,c)){const n=ap(s,m),k=kp(n.b,s.t);if(!att(n.b,k[0],k[1],n.t))out.push(m);}}
+return out;}
+function inChk(s){const k=kp(s.b,s.t);return att(s.b,k[0],k[1],s.t==="w"?"b":"w");}
+function ev(s){let v=0;
+for(let r=0;r<8;r++)for(let c=0;c<8;c++){const p=s.b[r][c];if(!p)continue;let x=EV[p[1]];
+if(p[1]!=="K"&&p[1]!=="R")x+=(7-Math.abs(2*c-7)/2-Math.abs(2*r-7)/2)*4;
+if(p[1]==="P")x+=(p[0]==="w"?6-r:r-1)*6;
+v+=p[0]==="w"?x:-x;}
+return v;}
+function srch(s,d,a,b){
+if(d===0){if(inChk(s)&&!legal(s).length)return s.t==="w"?-99999:99999;return ev(s);}
+const ms=legal(s);
+if(!ms.length)return inChk(s)?(s.t==="w"?-99999-d:99999+d):0;
+ms.sort((m1,m2)=>(s.b[m2.x][m2.y]?1:0)-(s.b[m1.x][m1.y]?1:0));
+if(s.t==="w"){let best=-Infinity;for(const m of ms){const v=srch(ap(s,m),d-1,a,b);if(v>best)best=v;if(v>a)a=v;if(a>=b)break;}return best;}
+let best=Infinity;for(const m of ms){const v=srch(ap(s,m),d-1,a,b);if(v<best)best=v;if(v<b)b=v;if(a>=b)break;}return best;}
+function best(S){let bm=null,bv=S.t==="w"?-Infinity:Infinity;const ms=legal(S).sort(()=>Math.random()-.5);
+for(const m of ms){const v=srch(ap(S,m),+lvl.value-1<0?0:+lvl.value-1,-Infinity,Infinity);if(S.t==="w"?v>bv:v<bv){bv=v;bm=m;}}return bm;}
+function aiMove(){busy=false;const S=cur(),ms=legal(S);if(over||!ms.length)return;
+if(+lvl.value===0){const cs=ms.filter(m=>S.b[m.x][m.y]);return play(Math.random()<.3&&cs.length?cs[Math.random()*cs.length|0]:ms[Math.random()*ms.length|0]);}
+play(best(S));}
+const sqn=(r,c)=>"abcdefgh"[c]+(8-r);
+function play(m){const S=cur(),p=S.b[m.r][m.c],cap=S.b[m.x][m.y]||m.f==="e";
+let t=m.f==="k"?"O-O":m.f==="q"?"O-O-O":(p[1]==="P"?"":p[1])+sqn(m.r,m.c)+(cap?"x":"-")+sqn(m.x,m.y)+(m.f==="p"?"="+(m.pr||"Q"):"");
+const n=ap(S,m),ms=legal(n),chk=inChk(n),q=rate(S,m),sl=!ns;ns=false;if(chk)t+=ms.length?"+":"#";
+if(clk)T[S.t]+=INC;H.push({s:n,m,t,T:{...T},q});vi=null;sel=null;dests=[];hint=null;warn=null;tip("");if(learn&&q&&(mode.value==="2"||S.t===mode.value))tip(QT[q]);
+sfx(!ms.length?"end":chk?"chk":cap?"cap":"move");
+if(!ms.length){over=true;res=chk?(S.t==="w"?"백":"흑")+" 승리 (체크메이트)":"무승부 (스테일메이트)";}
+if(!over){const dr=drawWhy(n);if(dr){over=true;res="무승부 ("+dr+")";}}
+fx={m,slide:sl,mate:over&&chk&&!ms.length};render();if(sl){hold=Date.now()+260;setTimeout(()=>{hold=0;render();},270);}if(over)setTimeout(fin,chk&&!ms.length?1700:500);else next(ms);}
+function ky(s){return s.b.map(r=>r.map(x=>x||"-").join(",")).join("/")+s.t+s.cr.wK+s.cr.wQ+s.cr.bK+s.cr.bQ+(s.ep?s.ep.join(""):"");}
+function drawWhy(n){const pcs=[];for(const r of n.b)for(const x of r)if(x&&x[1]!=="K")pcs.push(x[1]);
+if(!pcs.length||(pcs.length===1&&(pcs[0]==="B"||pcs[0]==="N")))return"기물 부족";
+const k=ky(n);let rep=0;for(const h of H)if(ky(h.s)===k)rep++;if(rep>=3)return"같은 국면 3회 반복";
+let q=0;for(let i=H.length-1;i>=1&&q<100;i--){const m=H[i].m,b=H[i-1].s.b;if(b[m.r][m.c][1]==="P"||b[m.x][m.y]||m.f==="e")break;q++;}
+return q>=100?"50수 규칙":"";}
+function fin(){$("ovt").textContent=res;$("ov").classList.add("on");}
+const humanTurn=()=>mode.value==="2"||cur().t===mode.value;
+function next(ms){if(over||!ms.length||humanTurn())return;busy=true;render();tm=setTimeout(aiMove,900+Math.random()*900);}
+function minAtt(b,r,c,by){let best=1e9;const pd=by==="w"?1:-1;
+for(const dc of[-1,1]){const x=r+pd,y=c+dc;if(on(x,y)&&b[x][y]===by+"P")best=Math.min(best,EV.P);}
+for(const[dr,dc]of KN){const x=r+dr,y=c+dc;if(on(x,y)&&b[x][y]===by+"N")best=Math.min(best,EV.N);}
+for(let i=0;i<8;i++){const[dr,dc]=D8[i];let x=r+dr,y=c+dc;
+if(on(x,y)&&b[x][y]===by+"K")best=Math.min(best,5000);
+while(on(x,y)){const p=b[x][y];if(p){if(p[0]===by){const t=p[1];if(t==="Q"||(t==="R"&&i<4)||(t==="B"&&i>=4))best=Math.min(best,EV[t]);}break;}x+=dr;y+=dc;}}
+return best;}
+function danger(S,m){const p=S.b[m.r][m.c][1],cp=S.b[m.x][m.y],n=ap(S,m),la=minAtt(n.b,m.x,m.y,n.t);
+if(la===1e9)return false;
+const cv=cp?EV[cp[1]]:m.f==="e"?100:0,def=att(n.b,m.x,m.y,S.t);
+return cv-EV[p]+(def?la:0)<-10;}
+function tip(t){$("tip").textContent=t;$("tip").classList.toggle("on",!!t);}
+function click(r,c){if(over||busy||!humanTurn()||vi!=null)return;const S=cur();hint=null;
+const m=dests.find(m=>m.x===r&&m.y===c);
+if(sel&&m){if(learn&&danger(S,m)&&!(warn&&warn.r===m.r&&warn.c===m.c&&warn.x===m.x&&warn.y===m.y)){warn=m;sfx("warn");tip("⚠️ 이 칸은 상대가 잡을 수 있어요! 그래도 두려면 한 번 더 누르세요.");return render();}
+warn=null;if(m.f==="p"){pend=m;const pc=$("pc");pc.className=S.t;pc.innerHTML=["Q","R","B","N"].map(k=>`<button data-k="${k}" aria-label="${NM[k]}">${U[k]}</button>`).join("");$("pr").classList.add("on");return;}
+return play(m);}
+warn=null;const p=S.b[r][c];
+if(p&&p[0]===S.t){sel=[r,c];dests=legal(S).filter(m=>m.r===r&&m.c===c);tip(learn?TIP[p[1]]:"");}else{sel=null;dests=[];tip("");}
+render();}
+function bar(el,c,s,live){const o=c==="w"?"b":"w";let cap="",mc=0,mo=0;
+for(const t of["Q","R","B","N","P"]){let n=0;for(const row of s.b)for(const p of row)if(p===o+t)n++;
+const miss=Math.max(0,SC[t]-n);cap+=`<span class="g ${o}">${U[t]}</span>`.repeat(miss);}
+for(const row of s.b)for(const p of row)if(p){const v=MV[p[1]];if(p[0]===c)mc+=v;else mo+=v;}
+const ai=mode.value!=="2"&&c!==mode.value,nm=(mode.value==="2"?"":ai?"컴퓨터 ":"나 ")+(c==="w"?"(백)":"(흑)"),d=mc-mo;
+const act=!over&&s.t===c;let sx="";if(act&&live&&ai&&busy)sx="생각 중…";else if(act&&inChk(s))sx="체크!";
+el.className="pbr"+(act?" on":"");
+el.innerHTML=`<i class="dot"></i><b>${nm}</b><span class="cp">${cap}</span>${d>0?`<em>+${d}</em>`:""}<span class="sx">${sx}</span>${clk?`<span class="ck" data-c="${c}">${fmt(T[c])}</span>`:""}`;}
+function render(){const e=H[idx()],s=e.s,last=e.m,live=vi==null,ck=inChk(s),kk=kp(s.b,s.t),q=e.q,mate=over&&/체크메이트/.test(res)&&idx()===H.length-1,wk=mate?kp(s.b,s.t==="w"?"b":"w"):null;let h="";
+for(let i=0;i<8;i++)for(let j=0;j<8;j++){const r=flip?7-i:i,c=flip?7-j:j,p=s.b[r][c];
+let cl="sq "+((r+c)%2?"D":"L"),bg="";
+if(q&&last&&last.x===r&&last.y===c)bg=`<i class="bg q${["??","?","?!","!","!!"].indexOf(q)}">${q}</i>`;
+if(mate&&kk[0]===r&&kk[1]===c)bg=`<i class="bg mt">#</i>`;
+if(mate&&wk[0]===r&&wk[1]===c)bg=`<i class="bg wn">♛</i>`;
+if(last&&((last.r===r&&last.c===c)||(last.x===r&&last.y===c)))cl+=" lm";
+if(live&&hint&&((hint.r===r&&hint.c===c)||(hint.x===r&&hint.y===c)))cl+=" hint";
+if(live&&sel&&sel[0]===r&&sel[1]===c)cl+=" sel";
+if(ck&&kk[0]===r&&kk[1]===c)cl+=" chk";
+const dm=live&&dests.find(m=>m.x===r&&m.y===c);if(dm)cl+=" mv"+(p||dm.f==="e"?" cp":"");
+h+=`<div class="${cl}" data-r="${r}" data-c="${c}" role="button" tabindex="0" aria-label="${sqn(r,c)}${p?" "+p:""}">`+
+(j===0?`<span class="co r">${8-r}</span>`:"")+(i===7?`<span class="co f">${"abcdefgh"[c]}</span>`:"")+
+(p?`<span class="p ${p[0]}">${U[p[1]]}</span>`:"")+bg+"</div>";}
+if(Date.now()>=hold)$("bd").innerHTML=h;if(fx){if(live)applyFx(fx);fx=null;}
+const bot=flip?"b":"w";bar($("pu"),bot,s,live);bar($("pt"),bot==="w"?"b":"w",s,live);
+const who=s.t==="w"?"백":"흑",st=$("st");
+st.textContent=over?res:!live?`기록 보기 · ${vi}/${H.length-1}수`:(busy?"컴퓨터가 생각 중…":who+" 차례")+(ck?" · 체크!":"");
+st.dataset.t=over?"x":s.t;
+let t="";const mb=i=>`<button class="mb${i===idx()?" a":""}" data-i="${i}">${H[i].t}${H[i].q||""}</button>`;
+for(let i=1;i<H.length;i+=2)t+=`<div class="r"><span class="n">${(i+1)/2}</span>${mb(i)}${H[i+1]?mb(i+1):"<span></span>"}</div>`;
+$("mv").innerHTML=t;if(live)$("mv").scrollTop=1e5;}
+function go(k){const L=H.length-1,c=idx();const n=k==="f"?0:k==="p"?Math.max(0,c-1):k==="n"?c+1:L;vi=n>=L?null:n;sel=null;dests=[];hint=null;render();}
+function start(){clearTimeout(tm);const[tm0,ti]=$("tcs").value.split(":");clk=+tm0>0;INC=+ti*1000;T={w:+tm0*1000,b:+tm0*1000};lastT=Date.now();H=[{s:init(),m:null,t:"",T:{...T}}];vi=null;sel=null;dests=[];over=false;busy=false;res="";hint=null;warn=null;tip("");
+$("ov").classList.remove("on");$("pr").classList.remove("on");flip=mode.value==="b";render();next(legal(cur()));}
+function tone(f,t0,d,ty,v,f2){const a=AC,o=a.createOscillator(),g=a.createGain(),T=a.currentTime+t0;o.type=ty;o.frequency.setValueAtTime(f,T);if(f2)o.frequency.exponentialRampToValueAtTime(f2,T+d);g.gain.setValueAtTime(v,T);g.gain.exponentialRampToValueAtTime(.0001,T+d);o.connect(g).connect(a.destination);o.start(T);o.stop(T+d+.02);}
+function noise(t0,d,v,fr){const a=AC,n=a.sampleRate*d|0,buf=a.createBuffer(1,n,a.sampleRate),ch=buf.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();s.buffer=buf;f.type="lowpass";f.frequency.value=fr;g.gain.value=v;s.connect(f).connect(g).connect(a.destination);s.start(a.currentTime+t0);}
+function sfx(k){if(!snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
+if(k==="move"){noise(0,.05,.5,1800);tone(180,0,.08,"sine",.25,90);}
+else if(k==="cap"){noise(0,.09,.9,3200);tone(240,0,.12,"triangle",.3,80);}
+else if(k==="chk"){noise(0,.06,.6,2500);tone(660,.04,.15,"sine",.18);tone(880,.12,.2,"sine",.18);}
+else if(k==="end"){[392,494,587,784].forEach((f,i)=>tone(f,i*.12,.5,"triangle",.2));}
+else if(k==="warn")tone(220,0,.15,"square",.08,160);
+else if(k==="hint")tone(880,0,.12,"sine",.15,1175);
+}catch(e){}}
+const mode=$("mode"),lvl=$("lvl"),mt=$("mt");
+$("bd").addEventListener("click",e=>{if(Date.now()-sw<300)return;const q=e.target.closest(".sq");if(q)click(+q.dataset.r,+q.dataset.c);});
+$("bd").addEventListener("keydown",e=>{if((e.key==="Enter"||e.key===" ")&&e.target.dataset.r){e.preventDefault();click(+e.target.dataset.r,+e.target.dataset.c);}});
+$("mv").addEventListener("click",e=>{const b=e.target.closest(".mb");if(b){const i=+b.dataset.i;vi=i>=H.length-1?null:i;sel=null;dests=[];hint=null;render();}});
+$("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go(b.dataset.k);});
+document.addEventListener("keydown",e=>{if(e.target.tagName==="SELECT")return;if(e.key==="ArrowLeft")go("p");else if(e.key==="ArrowRight")go("n");else if(e.key==="ArrowUp")go("f");else if(e.key==="ArrowDown")go("l");});
+$("pc").addEventListener("click",e=>{const b=e.target.closest("button");if(b&&pend){const m={...pend,pr:b.dataset.k};pend=null;$("pr").classList.remove("on");play(m);}});
+$("pr").addEventListener("click",e=>{if(e.target.id==="pr"){pend=null;$("pr").classList.remove("on");}});
+$("nw").onclick=start;$("ovn").onclick=start;$("ovc").onclick=()=>$("ov").classList.remove("on");mode.onchange=start;
+$("fl").onclick=()=>{flip=!flip;render();};
+$("un").onclick=()=>{if(busy||H.length<2)return;clearTimeout(tm);let n=mode.value==="2"?1:2;if(mode.value!=="2"&&over&&cur().t!==mode.value)n=1;
+while(n--&&H.length>1)H.pop();T={...H[H.length-1].T};lastT=Date.now();vi=null;sel=null;dests=[];over=false;res="";hint=null;warn=null;tip("");$("ov").classList.remove("on");render();if(!humanTurn())next(legal(cur()));};
+$("rs").onclick=()=>{if(over||busy||H.length<2)return;const c=mode.value==="2"?cur().t:mode.value;over=true;res=(c==="w"?"백":"흑")+" 기권 · "+(c==="w"?"흑":"백")+" 승리";sfx("end");render();fin();};
+$("ln").onclick=e=>{learn=!learn;e.target.textContent="배우기 "+(learn?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",learn);
+tip(learn?"배우기 모드! 말을 누르면 움직이는 법을 알려주고, 위험한 수는 미리 경고해요. 막히면 힌트를 눌러보세요.":"");};
+$("ht").onclick=()=>{if(over||busy||!humanTurn()||vi!=null)return;const S=cur();let bm=null,bv=S.t==="w"?-Infinity:Infinity;
+for(const m of legal(S)){const v=srch(ap(S,m),1,-Infinity,Infinity);if(S.t==="w"?v>bv:v<bv){bv=v;bm=m;}}
+if(!bm)return;hint=bm;sel=null;dests=[];warn=null;sfx("hint");
+tip("💡 추천: "+NM[S.b[bm.r][bm.c][1]]+" "+sqn(bm.r,bm.c)+" → "+sqn(bm.x,bm.y)+(S.b[bm.x][bm.y]?" (상대 말을 잡아요!)":""));render();};
+$("sd").onclick=e=>{snd=!snd;e.target.textContent="소리 "+(snd?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",snd);if(snd)sfx("move");};
+function hm(h){document.documentElement.classList.toggle("hm",h);mt.textContent=h?"메뉴 보기":"메뉴 숨기기";mt.setAttribute("aria-expanded",!h);try{localStorage.setItem("chess-hm",h?"1":"0");}catch(e){}}
+mt.onclick=()=>hm(!document.documentElement.classList.contains("hm"));
+try{if(localStorage.getItem("chess-hm")==="1")hm(true);}catch(e){}
+const QT={"??":"😱 큰 실수예요! 상대가 크게 이득을 볼 수 있어요.","?":"😕 실수예요. 더 좋은 수가 있었어요.","?!":"🤔 조금 아쉬운 수예요.","!":"👍 좋은 수예요!","!!":"✨ 멋진 수예요! 놓치기 쉬운 수를 찾았어요."};
+function rate(S,m){const w=S.t==="w"?1:-1,vs=legal(S).map(x=>[x,w*srch(ap(S,x),1,-Infinity,Infinity)]).sort((a,b)=>b[1]-a[1]);
+const same=x=>x.r===m.r&&x.c===m.c&&x.x===m.x&&x.y===m.y,pv=(vs.find(a=>same(a[0]))||[0,-1e9])[1],bv=vs[0][1],sc=vs[1]?vs[1][1]:-1e9,loss=bv-pv;
+if(loss>=300)return"??";if(loss>=150)return"?";if(loss>=70)return"?!";
+if(vs.length>1&&loss<=5){if(bv-sc>=250&&EV[S.b[m.r][m.c][1]]>=300&&danger(S,m))return"!!";if(bv-sc>=150)return"!";}
+return"";}
+function applyFx(f){const m=f.m,bd=$("bd"),bc=$("bc"),sg=flip?-1:1,q=bd.clientWidth/8,ox=bd.offsetLeft+bd.clientLeft,oy=bd.offsetTop+bd.clientTop;
+const vc=c=>ox+((flip?7-c:c)+.5)*q,vr=r=>oy+((flip?7-r:r)+.5)*q;
+if(f.slide){const el=bd.querySelector(`.sq[data-r="${m.x}"][data-c="${m.y}"] .p`);
+if(el){el.style.setProperty("--dx",(m.c-m.y)*sg);el.style.setProperty("--dy",(m.r-m.x)*sg);el.classList.add("sl");}
+const x0=vc(m.c),y0=vr(m.r),x1=vc(m.y),y1=vr(m.x),t=document.createElement("div");
+t.className="tr";t.style.cssText=`left:${x0}px;top:${y0-q*.2}px;width:${Math.hypot(x1-x0,y1-y0)}px;height:${q*.4}px;transform:rotate(${Math.atan2(y1-y0,x1-x0)}rad)`;
+bc.appendChild(t);setTimeout(()=>t.remove(),800);}
+if(f.mate){const k=kp(cur().b,cur().t),x=vc(k[1]),y=vr(k[0]),rg=document.createElement("div");
+rg.className="rg";rg.style.cssText=`left:${x}px;top:${y}px`;bc.appendChild(rg);setTimeout(()=>rg.remove(),900);
+for(let i=0;i<32;i++){const p=document.createElement("i"),a=Math.random()*6.283,d=q*(1.2+Math.random()*3);
+p.className="pt";p.style.cssText=`left:${x}px;top:${y}px;--tx:${Math.cos(a)*d}px;--ty:${Math.sin(a)*d}px;--rot:${Math.random()*720-360}deg;width:${4+Math.random()*7}px;height:${3+Math.random()*6}px;background:${i%4?"#fff":"#f2c94c"};animation-delay:${Math.random()*.12}s`;
+bc.appendChild(p);setTimeout(()=>p.remove(),1500);}}}
+function fmt(ms){if(ms<20000)return(Math.max(0,ms)/1000).toFixed(1);const s=Math.ceil(ms/1000);return Math.floor(s/60)+":"+String(s%60).padStart(2,"0");}
+function tick(){const now=Date.now(),d=Math.min(now-lastT,500);lastT=now;if(!clk||over||H.length<2)return;const c=cur().t;T[c]-=d;
+if(T[c]<=0){T[c]=0;over=true;clearTimeout(tm);busy=false;res=(c==="w"?"백":"흑")+" 시간 초과 · "+(c==="w"?"흑":"백")+" 승리";sfx("end");render();fin();return;}
+document.querySelectorAll(".ck").forEach(el=>el.textContent=fmt(T[el.dataset.c]));}
+setInterval(tick,100);$("tcs").onchange=start;
+const bdE=$("bd");
+bdE.addEventListener("pointerdown",e=>{const q=e.target.closest(".sq");if(!q||e.button>0||over||busy||!humanTurn()||vi!=null)return;
+const r=+q.dataset.r,c=+q.dataset.c,S=cur(),p=S.b[r][c];if(!p||p[0]!==S.t)return;
+ns=false;click(r,c);dg={r,c,x:e.clientX,y:e.clientY,on:false,p};try{bdE.setPointerCapture(e.pointerId);}catch(_){}});
+bdE.addEventListener("pointermove",e=>{if(!dg)return;
+if(!dg.on){if(Math.hypot(e.clientX-dg.x,e.clientY-dg.y)<8)return;dg.on=true;
+gh=document.createElement("div");gh.id="gh";gh.innerHTML=`<span class="p ${dg.p[0]}">${U[dg.p[1]]}</span>`;document.body.appendChild(gh);
+const o=bdE.querySelector(`.sq[data-r="${dg.r}"][data-c="${dg.c}"] .p`);if(o)o.style.opacity=.25;}
+gh.style.left=e.clientX+"px";gh.style.top=e.clientY+"px";});
+const endDrag=e=>{if(!dg)return;const d=dg;dg=null;if(gh){gh.remove();gh=null;}
+if(!d.on)return;sw=Date.now();
+const t=e.type==="pointerup"?document.elementFromPoint(e.clientX,e.clientY):null,q=t&&t.closest?t.closest(".sq"):null;
+if(q){const r=+q.dataset.r,c=+q.dataset.c;if(dests.find(m=>m.x===r&&m.y===c)){ns=true;click(r,c);return;}}
+render();};
+bdE.addEventListener("pointerup",endDrag);bdE.addEventListener("pointercancel",endDrag);
+start();
+</script>
+<script>
+if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+</script>
+</body>
+</html>
