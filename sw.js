@@ -1,5 +1,5 @@
 // 캐시 버전: index.html 등을 고쳤다면 숫자를 올려서 배포하세요.
-const V = "chess-v1";
+const V = "chess-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 

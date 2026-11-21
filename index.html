@@ -298,18 +298,27 @@ $("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go
 document.addEventListener("keydown",e=>{if(e.target.tagName==="SELECT")return;if(e.key==="ArrowLeft")go("p");else if(e.key==="ArrowRight")go("n");else if(e.key==="ArrowUp")go("f");else if(e.key==="ArrowDown")go("l");});
 $("pc").addEventListener("click",e=>{const b=e.target.closest("button");if(b&&pend){const m={...pend,pr:b.dataset.k};pend=null;$("pr").classList.remove("on");play(m);}});
 $("pr").addEventListener("click",e=>{if(e.target.id==="pr"){pend=null;$("pr").classList.remove("on");}});
-$("nw").onclick=start;$("ovn").onclick=start;$("ovc").onclick=()=>$("ov").classList.remove("on");mode.onchange=start;
+const PREF_KEY="chess-prefs-v1";
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify({mode:mode.value,lvl:lvl.value,tcs:$("tcs").value,learn,snd}));}catch(e){}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY)||"null");if(!p||typeof p!=="object")return;
+if(["w","b","2"].includes(p.mode))mode.value=p.mode;
+if(["0","1","2","3"].includes(String(p.lvl)))lvl.value=String(p.lvl);
+if(["0:0","60:0","180:2","300:0","600:0"].includes(p.tcs))$("tcs").value=p.tcs;
+if(typeof p.learn==="boolean"){learn=p.learn;$("ln").textContent="배우기 "+(learn?"켜짐":"꺼짐");$("ln").setAttribute("aria-pressed",learn);}
+if(typeof p.snd==="boolean"){snd=p.snd;$("sd").textContent="소리 "+(snd?"켜짐":"꺼짐");$("sd").setAttribute("aria-pressed",snd);}
+}catch(e){}}
+$("nw").onclick=start;$("ovn").onclick=start;$("ovc").onclick=()=>$("ov").classList.remove("on");mode.onchange=()=>{savePrefs();start();};lvl.onchange=savePrefs;
 $("fl").onclick=()=>{flip=!flip;render();};
 $("un").onclick=()=>{if(busy||H.length<2)return;clearTimeout(tm);let n=mode.value==="2"?1:2;if(mode.value!=="2"&&over&&cur().t!==mode.value)n=1;
 while(n--&&H.length>1)H.pop();T={...H[H.length-1].T};lastT=Date.now();vi=null;sel=null;dests=[];over=false;res="";hint=null;warn=null;tip("");$("ov").classList.remove("on");render();if(!humanTurn())next(legal(cur()));};
 $("rs").onclick=()=>{if(over||busy||H.length<2)return;const c=mode.value==="2"?cur().t:mode.value;over=true;res=(c==="w"?"백":"흑")+" 기권 · "+(c==="w"?"흑":"백")+" 승리";sfx("end");render();fin();};
-$("ln").onclick=e=>{learn=!learn;e.target.textContent="배우기 "+(learn?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",learn);
+$("ln").onclick=e=>{learn=!learn;e.target.textContent="배우기 "+(learn?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",learn);savePrefs();
 tip(learn?"배우기 모드! 말을 누르면 움직이는 법을 알려주고, 위험한 수는 미리 경고해요. 막히면 힌트를 눌러보세요.":"");};
 $("ht").onclick=()=>{if(over||busy||!humanTurn()||vi!=null)return;const S=cur();let bm=null,bv=S.t==="w"?-Infinity:Infinity;
 for(const m of legal(S)){const v=srch(ap(S,m),1,-Infinity,Infinity);if(S.t==="w"?v>bv:v<bv){bv=v;bm=m;}}
 if(!bm)return;hint=bm;sel=null;dests=[];warn=null;sfx("hint");
 tip("💡 추천: "+NM[S.b[bm.r][bm.c][1]]+" "+sqn(bm.r,bm.c)+" → "+sqn(bm.x,bm.y)+(S.b[bm.x][bm.y]?" (상대 말을 잡아요!)":""));render();};
-$("sd").onclick=e=>{snd=!snd;e.target.textContent="소리 "+(snd?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",snd);if(snd)sfx("move");};
+$("sd").onclick=e=>{snd=!snd;e.target.textContent="소리 "+(snd?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",snd);savePrefs();if(snd)sfx("move");};
 function hm(h){document.documentElement.classList.toggle("hm",h);mt.textContent=h?"메뉴 보기":"메뉴 숨기기";mt.setAttribute("aria-expanded",!h);try{localStorage.setItem("chess-hm",h?"1":"0");}catch(e){}}
 mt.onclick=()=>hm(!document.documentElement.classList.contains("hm"));
 try{if(localStorage.getItem("chess-hm")==="1")hm(true);}catch(e){}
@@ -335,7 +344,7 @@ function fmt(ms){if(ms<20000)return(Math.max(0,ms)/1000).toFixed(1);const s=Math
 function tick(){const now=Date.now(),d=Math.min(now-lastT,500);lastT=now;if(!clk||over||H.length<2)return;const c=cur().t;T[c]-=d;
 if(T[c]<=0){T[c]=0;over=true;clearTimeout(tm);busy=false;res=(c==="w"?"백":"흑")+" 시간 초과 · "+(c==="w"?"흑":"백")+" 승리";sfx("end");render();fin();return;}
 document.querySelectorAll(".ck").forEach(el=>el.textContent=fmt(T[el.dataset.c]));}
-setInterval(tick,100);$("tcs").onchange=start;
+setInterval(tick,100);$("tcs").onchange=()=>{savePrefs();start();};
 const bdE=$("bd");
 bdE.addEventListener("pointerdown",e=>{const q=e.target.closest(".sq");if(!q||e.button>0||over||busy||!humanTurn()||vi!=null)return;
 const r=+q.dataset.r,c=+q.dataset.c,S=cur(),p=S.b[r][c];if(!p||p[0]!==S.t)return;
@@ -351,6 +360,7 @@ const t=e.type==="pointerup"?document.elementFromPoint(e.clientX,e.clientY):null
 if(q){const r=+q.dataset.r,c=+q.dataset.c;if(dests.find(m=>m.x===r&&m.y===c)){ns=true;click(r,c);return;}}
 render();};
 bdE.addEventListener("pointerup",endDrag);bdE.addEventListener("pointercancel",endDrag);
+loadPrefs();
 start();
 </script>
 <script>
