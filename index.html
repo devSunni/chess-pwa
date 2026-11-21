@@ -25,6 +25,10 @@ button:hover,select:hover{border-color:var(--gold)}
 button:hover{color:var(--gold)}
 button:focus-visible,select:focus-visible,.sq:focus-visible{outline:2px solid #3b78c4;outline-offset:1px}
 #mt{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;z-index:5;font-size:.8rem}
+#upd{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);left:50%;transform:translateX(-50%);z-index:25;display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:var(--bg1);color:var(--ink);border:1px solid var(--gold);box-shadow:0 10px 26px rgba(0,0,0,.35);font-size:.86rem;max-width:94vw}
+#upd.on{display:flex}
+#upd button{padding:5px 12px;font-size:.8rem}
+#upd #updb{background:var(--gold);border-color:var(--gold);color:#1b1610;font-weight:600}
 #app{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
 #pn{display:contents}
 h1{order:-2;margin:6px 0 0;font-weight:500;font-size:1.7rem;letter-spacing:.2em;text-indent:.2em;text-align:center}
@@ -137,12 +141,13 @@ h1 span{text-indent:0}
 <select id="mode" aria-label="상대"><option value="w">컴퓨터와 (내가 백)</option><option value="b">컴퓨터와 (내가 흑)</option><option value="2">둘이서</option></select>
 <select id="lvl" aria-label="난이도"><option value="0">입문</option><option value="1">쉬움</option><option value="2" selected>보통</option><option value="3">어려움</option></select>
 <select id="tcs" aria-label="시간"><option value="0:0">시간 무제한</option><option value="60:0">1분</option><option value="180:2">3분+2초</option><option value="300:0">5분</option><option value="600:0">10분</option></select>
-<button id="nw">새 게임</button><button id="un">무르기</button><button id="fl">뒤집기</button><button id="rs">기권</button><button id="ht">힌트</button><button id="ln" aria-pressed="false">배우기 꺼짐</button><button id="sd" aria-pressed="true">소리 켜짐</button>
+<button id="nw">새 게임</button><button id="un">무르기</button><button id="fl">뒤집기</button><button id="rs">기권</button><button id="ht">힌트</button><button id="ln" aria-pressed="false">배우기 꺼짐</button><button id="sd" aria-pressed="true">소리 켜짐</button><button id="th">테마 자동</button>
 </div>
 </aside>
 </main>
 <div class="ov" id="pr"><div class="card"><p>프로모션: 무엇으로 바꿀까요?</p><div id="pc"></div></div></div>
 <div class="ov" id="ov"><div class="card"><h2 id="ovt"></h2><button id="ovn">새 게임</button> <button id="ovc">닫기</button></div></div>
+<div id="upd" role="status" aria-live="polite"><span>✨ 새 버전이 준비되었어요</span><button id="updb">업데이트</button><button id="updc" aria-label="닫기">✕</button></div>
 <script>
 const EV={P:100,N:320,B:330,R:500,Q:900,K:0},MV={P:1,N:3,B:3,R:5,Q:9,K:0},SC={P:8,N:2,B:2,R:2,Q:1};
 const U={K:"♚",Q:"♛",R:"♜",B:"♝",N:"♞",P:"♟\uFE0E"},NM={P:"폰",N:"나이트",B:"비숍",R:"룩",Q:"퀸",K:"킹"};
@@ -217,7 +222,7 @@ if(clk)T[S.t]+=INC;H.push({s:n,m,t,T:{...T},q});vi=null;sel=null;dests=[];hint=n
 sfx(!ms.length?"end":chk?"chk":cap?"cap":"move");
 if(!ms.length){over=true;res=chk?(S.t==="w"?"백":"흑")+" 승리 (체크메이트)":"무승부 (스테일메이트)";}
 if(!over){const dr=drawWhy(n);if(dr){over=true;res="무승부 ("+dr+")";}}
-fx={m,slide:sl,mate:over&&chk&&!ms.length};render();if(sl){hold=Date.now()+260;setTimeout(()=>{hold=0;render();},270);}if(over)setTimeout(fin,chk&&!ms.length?1700:500);else next(ms);}
+fx={m,slide:sl,mate:over&&chk&&!ms.length};saveState();render();if(sl){hold=Date.now()+260;setTimeout(()=>{hold=0;render();},270);}if(over)setTimeout(fin,chk&&!ms.length?1700:500);else next(ms);}
 function ky(s){return s.b.map(r=>r.map(x=>x||"-").join(",")).join("/")+s.t+s.cr.wK+s.cr.wQ+s.cr.bK+s.cr.bQ+(s.ep?s.ep.join(""):"");}
 function drawWhy(n){const pcs=[];for(const r of n.b)for(const x of r)if(x&&x[1]!=="K")pcs.push(x[1]);
 if(!pcs.length||(pcs.length===1&&(pcs[0]==="B"||pcs[0]==="N")))return"기물 부족";
@@ -279,7 +284,7 @@ for(let i=1;i<H.length;i+=2)t+=`<div class="r"><span class="n">${(i+1)/2}</span>
 $("mv").innerHTML=t;if(live)$("mv").scrollTop=1e5;}
 function go(k){const L=H.length-1,c=idx();const n=k==="f"?0:k==="p"?Math.max(0,c-1):k==="n"?c+1:L;vi=n>=L?null:n;sel=null;dests=[];hint=null;render();}
 function start(){clearTimeout(tm);const[tm0,ti]=$("tcs").value.split(":");clk=+tm0>0;INC=+ti*1000;T={w:+tm0*1000,b:+tm0*1000};lastT=Date.now();H=[{s:init(),m:null,t:"",T:{...T}}];vi=null;sel=null;dests=[];over=false;busy=false;res="";hint=null;warn=null;tip("");
-$("ov").classList.remove("on");$("pr").classList.remove("on");flip=mode.value==="b";render();next(legal(cur()));}
+$("ov").classList.remove("on");$("pr").classList.remove("on");flip=mode.value==="b";saveState();render();next(legal(cur()));}
 function tone(f,t0,d,ty,v,f2){const a=AC,o=a.createOscillator(),g=a.createGain(),T=a.currentTime+t0;o.type=ty;o.frequency.setValueAtTime(f,T);if(f2)o.frequency.exponentialRampToValueAtTime(f2,T+d);g.gain.setValueAtTime(v,T);g.gain.exponentialRampToValueAtTime(.0001,T+d);o.connect(g).connect(a.destination);o.start(T);o.stop(T+d+.02);}
 function noise(t0,d,v,fr){const a=AC,n=a.sampleRate*d|0,buf=a.createBuffer(1,n,a.sampleRate),ch=buf.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);const s=a.createBufferSource(),g=a.createGain(),f=a.createBiquadFilter();s.buffer=buf;f.type="lowpass";f.frequency.value=fr;g.gain.value=v;s.connect(f).connect(g).connect(a.destination);s.start(a.currentTime+t0);}
 function sfx(k){if(!snd)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==="suspended")AC.resume();
@@ -298,20 +303,36 @@ $("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(b)go
 document.addEventListener("keydown",e=>{if(e.target.tagName==="SELECT")return;if(e.key==="ArrowLeft")go("p");else if(e.key==="ArrowRight")go("n");else if(e.key==="ArrowUp")go("f");else if(e.key==="ArrowDown")go("l");});
 $("pc").addEventListener("click",e=>{const b=e.target.closest("button");if(b&&pend){const m={...pend,pr:b.dataset.k};pend=null;$("pr").classList.remove("on");play(m);}});
 $("pr").addEventListener("click",e=>{if(e.target.id==="pr"){pend=null;$("pr").classList.remove("on");}});
-const PREF_KEY="chess-prefs-v1";
-function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify({mode:mode.value,lvl:lvl.value,tcs:$("tcs").value,learn,snd}));}catch(e){}}
+const PREF_KEY="chess-prefs-v1",STATE_KEY="chess-state-v1";
+let theme="auto";
+function applyTheme(t){theme=["auto","light","dark"].includes(t)?t:"auto";
+if(theme==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",theme);
+$("th").textContent=theme==="light"?"테마 라이트":theme==="dark"?"테마 다크":"테마 자동";}
+function savePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify({mode:mode.value,lvl:lvl.value,tcs:$("tcs").value,learn,snd,theme}));}catch(e){}}
 function loadPrefs(){try{const p=JSON.parse(localStorage.getItem(PREF_KEY)||"null");if(!p||typeof p!=="object")return;
 if(["w","b","2"].includes(p.mode))mode.value=p.mode;
 if(["0","1","2","3"].includes(String(p.lvl)))lvl.value=String(p.lvl);
 if(["0:0","60:0","180:2","300:0","600:0"].includes(p.tcs))$("tcs").value=p.tcs;
 if(typeof p.learn==="boolean"){learn=p.learn;$("ln").textContent="배우기 "+(learn?"켜짐":"꺼짐");$("ln").setAttribute("aria-pressed",learn);}
 if(typeof p.snd==="boolean"){snd=p.snd;$("sd").textContent="소리 "+(snd?"켜짐":"꺼짐");$("sd").setAttribute("aria-pressed",snd);}
+if(p.theme)applyTheme(p.theme);
 }catch(e){}}
+function saveState(){try{if(!H||!H.length)return;localStorage.setItem(STATE_KEY,JSON.stringify({v:1,H,T,INC,clk,flip,over,res}));}catch(e){}}
+function loadState(){try{const s=JSON.parse(localStorage.getItem(STATE_KEY)||"null");
+if(!s||s.v!==1||!Array.isArray(s.H)||s.H.length<2||!s.H[s.H.length-1]?.s?.b)return false;
+H=s.H;const[tm0,ti]=$("tcs").value.split(":");clk=typeof s.clk==="boolean"?s.clk:+tm0>0;INC=typeof s.INC==="number"?s.INC:+ti*1000;
+T=(s.T&&typeof s.T.w==="number"&&typeof s.T.b==="number")?{w:Math.max(0,s.T.w),b:Math.max(0,s.T.b)}:{w:+tm0*1000,b:+tm0*1000};
+flip=typeof s.flip==="boolean"?s.flip:mode.value==="b";over=!!s.over;res=typeof s.res==="string"?s.res:"";
+vi=null;sel=null;dests=[];busy=false;hint=null;warn=null;lastT=Date.now();
+$("ov").classList.remove("on");$("pr").classList.remove("on");
+tip(over?"":"💾 이전 대국을 이어서 불러왔어요.");render();if(!over)next(legal(cur()));return true;
+}catch(e){return false;}}
+$("th").onclick=()=>{const ord=["auto","light","dark"];applyTheme(ord[(ord.indexOf(theme)+1)%3]);savePrefs();};
 $("nw").onclick=start;$("ovn").onclick=start;$("ovc").onclick=()=>$("ov").classList.remove("on");mode.onchange=()=>{savePrefs();start();};lvl.onchange=savePrefs;
-$("fl").onclick=()=>{flip=!flip;render();};
+$("fl").onclick=()=>{flip=!flip;saveState();render();};
 $("un").onclick=()=>{if(busy||H.length<2)return;clearTimeout(tm);let n=mode.value==="2"?1:2;if(mode.value!=="2"&&over&&cur().t!==mode.value)n=1;
-while(n--&&H.length>1)H.pop();T={...H[H.length-1].T};lastT=Date.now();vi=null;sel=null;dests=[];over=false;res="";hint=null;warn=null;tip("");$("ov").classList.remove("on");render();if(!humanTurn())next(legal(cur()));};
-$("rs").onclick=()=>{if(over||busy||H.length<2)return;const c=mode.value==="2"?cur().t:mode.value;over=true;res=(c==="w"?"백":"흑")+" 기권 · "+(c==="w"?"흑":"백")+" 승리";sfx("end");render();fin();};
+while(n--&&H.length>1)H.pop();T={...H[H.length-1].T};lastT=Date.now();vi=null;sel=null;dests=[];over=false;res="";hint=null;warn=null;tip("");$("ov").classList.remove("on");saveState();render();if(!humanTurn())next(legal(cur()));};
+$("rs").onclick=()=>{if(over||busy||H.length<2)return;const c=mode.value==="2"?cur().t:mode.value;over=true;res=(c==="w"?"백":"흑")+" 기권 · "+(c==="w"?"흑":"백")+" 승리";saveState();sfx("end");render();fin();};
 $("ln").onclick=e=>{learn=!learn;e.target.textContent="배우기 "+(learn?"켜짐":"꺼짐");e.target.setAttribute("aria-pressed",learn);savePrefs();
 tip(learn?"배우기 모드! 말을 누르면 움직이는 법을 알려주고, 위험한 수는 미리 경고해요. 막히면 힌트를 눌러보세요.":"");};
 $("ht").onclick=()=>{if(over||busy||!humanTurn()||vi!=null)return;const S=cur();let bm=null,bv=S.t==="w"?-Infinity:Infinity;
@@ -360,11 +381,25 @@ const t=e.type==="pointerup"?document.elementFromPoint(e.clientX,e.clientY):null
 if(q){const r=+q.dataset.r,c=+q.dataset.c;if(dests.find(m=>m.x===r&&m.y===c)){ns=true;click(r,c);return;}}
 render();};
 bdE.addEventListener("pointerup",endDrag);bdE.addEventListener("pointercancel",endDrag);
+window.addEventListener("pagehide",saveState);
+document.addEventListener("visibilitychange",()=>{if(document.hidden)saveState();else lastT=Date.now();});
 loadPrefs();
-start();
+if(!loadState())start();
 </script>
 <script>
-if("serviceWorker" in navigator)addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  let wsw=null,regRef=null,rel=false;
+  const ub=document.getElementById("upd"),showU=s=>{wsw=s;if(ub)ub.classList.add("on");};
+  const b1=document.getElementById("updb"),b2=document.getElementById("updc");
+  if(b1)b1.onclick=()=>{if(wsw){wsw.postMessage({type:"SKIP_WAITING"});ub.classList.remove("on");}};
+  if(b2)b2.onclick=()=>ub.classList.remove("on");
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(rel)return;rel=true;location.reload();});
+  addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").then(reg=>{
+    regRef=reg;if(reg.waiting&&navigator.serviceWorker.controller)showU(reg.waiting);
+    reg.addEventListener("updatefound",()=>{const nw=reg.installing;if(nw)nw.addEventListener("statechange",()=>{if(nw.state==="installed"&&navigator.serviceWorker.controller)showU(nw);});});
+  }).catch(()=>{}));
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden&&regRef)regRef.update().catch(()=>{});});
+}
 </script>
 </body>
 </html>

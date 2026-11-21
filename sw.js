@@ -1,10 +1,13 @@
 // 캐시 버전: index.html 등을 고쳤다면 숫자를 올려서 배포하세요.
-const V = "chess-v2";
+const V = "chess-v3";
 const FILES = ["./", "./index.html", "./manifest.webmanifest",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-maskable-512.png", "./icons/apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(V).then(c => c.addAll(FILES)));
+});
+self.addEventListener("message", e => {
+  if (e.data && e.data.type === "SKIP_WAITING") self.skipWaiting();
 });
 self.addEventListener("activate", e => {
   e.waitUntil(caches.keys()
